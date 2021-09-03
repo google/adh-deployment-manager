@@ -1,0 +1,5 @@
+*.swp
+*.swo
+.*
+!/.gitignore
+__pycache__/

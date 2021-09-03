@@ -1,0 +1,27 @@
+developer_key:
+  A
+customer_id:
+  0
+bq_project:
+  a
+bq_dataset:
+  t
+# parameters used to generate ADH temp table
+date_range_setup:
+  start_date: YYYYMMDD-10
+  end_date: YYYYMMDD-1
+queries_setup:
+  - queries:
+    - a3
+    - a4
+    parameters:
+      s:
+        type: STRING
+      e:
+        type: STRING
+    filtered_row_summary:
+      text:
+        type: CONSTANT
+        value: filtered
+    execution_mode: batch
+    wait: block
