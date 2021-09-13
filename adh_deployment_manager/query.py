@@ -222,8 +222,8 @@ class AnalysisQuery(AdhQuery):
              parameters=None,
              **kwargs):
         if not self.is_valid_query:
-            self.is_valid_query = self.validate()[0]
-        if not self.is_valid_query:
+            self.is_valid_query = self.validate()
+        if not self.is_valid_query[0]:
             raise ValueError(
                 f"Cannot start invalid query {self.name}! error: {self.is_valid_query[1]}"
             )
