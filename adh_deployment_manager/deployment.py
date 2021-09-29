@@ -188,6 +188,10 @@ List of queries:
                         query_for_run.get("end_date"),
                         f"{self.config.bq_project}.{self.config.bq_dataset}.{query}",
                         query_for_run.get("parameters"), **kwargs)
+                    launch_job = execute_adh_api_call_with_retry(job)
+                    if query_for_run.get("wait"):
+                        wait_for_query_success(self.adh_service.adh_service,
+                                               launch_job.get("name"))
                     job_queue.append({
                         "job_obj": job,
                         "wait_status": query_for_run.get("wait"),
