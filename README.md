@@ -47,6 +47,7 @@ deployment.run()
     3. [Specify queries](#specify-queries)
 	    1. [Add new ADH queries](#add-adh-queries)
 	    2. [Use existing ADH queries](#use-adh-queries)
+    4. [Deploying and running queries](#running-queries)
 
 ## Project overview<a name="project-overview"></a>
 *Back to [table of contents](#table-of-contents)*
@@ -247,7 +248,7 @@ my_deployment = Deployment(
 
 #### Use Existing Queries from ADH<a name="use-adh-queries"></a>
 
-If the purpose of deployment is to run existing ADH queries you should omit `queries_folder` and `queries_file_extention` when creating `Deployment` object. 
+If the purpose of deployment is to run existing ADH queries you should omit `queries_folder` and `queries_file_extention` when creating `Deployment` object.
 Query titles in `queries` block should be title of the queries found in ADH UI.
 ```
 from  adh_deployment_manager.deployment import Deployment
@@ -256,4 +257,43 @@ my_deployment = Deployment(
     config = "path/to/config.yml",
     credentials = my_credentials
     )
+```
+
+### Deploying and running queires<a name="running-queries"></a>
+*Back to [table of contents](#table-of-contents)*
+
+ADH Deployment Manager contains helper `adm.py` that allows you to simplify interaction with the library.
+`adm.py` accept several arguments:
+
+*  `command` - one of `run`, `deploy`, `update`
+*  `subcommand` - one of `deploy` or `update`
+*  `-c path/to/config.yml` - specifies where config is located
+*  `-q path/to/queries_folder` - specifies where folder with queries is located
+
+#### Usage
+```
+python adm.py [OPTIONS] command subcommand
+    options:
+    -c path/to/config.yml
+    -q path/to/queries_folder
+```
+
+#### Examples
+
+*Deploy queries based on config*
+
+```
+python adm.py -c path/to/config.yml -q path/to/queries deploy
+```
+
+*Run queries without deployment*
+
+```
+python adm.py -c path/to/config.yml run
+```
+
+*Run and update queries*
+
+```
+python adm.py -c path/to/config.yml -q path/to/queries run update
 ```

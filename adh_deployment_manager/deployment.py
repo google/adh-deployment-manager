@@ -150,15 +150,27 @@ List of queries:
         self.run()
 
     def run(self, deploy=False, update=False, **kwargs):
+        from collections import deque
+        # TODO: evaluate whether we need deque
+        job_queue = deque()
+        # TODO: return Job instance instead of operation names
+        launched_job_queue = deque()
+
+        def launch_job(job, wait):
+            launched_job = execute_adh_api_call_with_retry(job)
+            if launched_job:
+                logging.info("job successfully launched!")
+            if wait:
+                wait_for_query_success(self.adh_service.adh_service,
+                                       launched_job.get("name"))
+            return launched_job.get("name")
+
         if not self.config.bq_project or not self.config.bq_dataset:
             logging.error("BQ project and/or dataset weren't provided")
             raise ValueError(
                 "BQ project and dataset are required to run the queries!")
         if deploy:
             self.deploy(update=update)
-        # TODO: evaluate whether we need deque
-        from collections import deque
-        job_queue = deque()
         # iterate over queries in config
         for query in self.config.queries:
             # construct AdhQuery object with query title
@@ -188,10 +200,7 @@ List of queries:
                         query_for_run.get("end_date"),
                         f"{self.config.bq_project}.{self.config.bq_dataset}.{query}",
                         query_for_run.get("parameters"), **kwargs)
-                    launch_job = execute_adh_api_call_with_retry(job)
-                    if query_for_run.get("wait"):
-                        wait_for_query_success(self.adh_service.adh_service,
-                                               launch_job.get("name"))
+                    launched_job =  launch_job(job, wait = query_for_run.get("wait"))
                     job_queue.append({
                         "job_obj": job,
                         "wait_status": query_for_run.get("wait"),
@@ -211,6 +220,7 @@ List of queries:
                             wait = query_for_run.get("wait")
                         else:
                             wait = False
+                        launched_job = launch_job(job, wait = wait)
                         job_queue.append({
                             "job_obj":
                             job,
@@ -219,16 +229,5 @@ List of queries:
                             "query_identifier":
                             f"{query}_{date.strftime('%Y%m%d')}"
                         })
-        # TODO: return Job instance instead of operation names
-        launch_job_queue = deque()
-        for job in job_queue:
-            logging.info(f"launching job {job.get('query_identifier')}...")
-            launch_job = execute_adh_api_call_with_retry(job.get("job_obj"))
-            launch_job_queue.append(launch_job.get("name"))
-
-            if launch_job:
-                logging.info("job successfully launched!")
-            if job.get("wait_status"):
-                wait_for_query_success(self.adh_service.adh_service,
-                                       launch_job.get("name"))
-        return {"jobs": job_queue, "launched_jobs": launch_job_queue}
+                launched_job_queue.append(launched_job)
+        return {"jobs": job_queue, "launched_jobs": launched_job_queue}
