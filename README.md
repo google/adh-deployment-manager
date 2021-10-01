@@ -72,11 +72,6 @@ my_adh_project
 
 * [Python3](https://www.python.org/downloads/)
 * [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-* Access to repository configured. In order to clone this repository you need to do the following:
-
-    * Visit [https://professional-services.googlesource.com/new-password](https://professional-services.googlesource.com/new-password) and login with your account
-    * Once authenticated please copy all lines in box and paste them in the terminal.
-    * Run `git clone https://professional-services.googlesource.com/solutions/adh-deployment-manager` in your shell to clone this repo
 
 
 ## Getting started<a name="getting-started"></a>
