@@ -208,12 +208,14 @@ List of queries:
                         continue
                 query_for_run = self.config.queries[query]
                 logging.info(f"setting up query for run: {query}...")
+                output_table_suffix = query_for_run.get("output_table_suffix")
+                table_name = f"{query}{output_table_suffix}" if output_table_suffix else query
                 if not query_for_run.get("batch_mode"):
                     #TODO: if query failed due to 100,000 user sets error, switch to batch mode
                     job = analysis_query._run(
                         query_for_run.get("start_date"),
                         query_for_run.get("end_date"),
-                        f"{self.config.bq_project}.{self.config.bq_dataset}.{query}",
+                        f"{self.config.bq_project}.{self.config.bq_dataset}.{table_name}",
                         query_for_run.get("parameters"), **kwargs)
                     launched_job =  launch_job(job, wait = query_for_run.get("wait"))
                     job_queue.append({
@@ -229,7 +231,7 @@ List of queries:
                         fetching_date = date.strftime("%Y-%m-%d")
                         job = analysis_query._run(
                             fetching_date, fetching_date,
-                            f"{self.config.bq_project}.{self.config.bq_dataset}.{query}_{date.strftime('%Y%m%d')}",
+                            f"{self.config.bq_project}.{self.config.bq_dataset}.{output_table_suffix}_{date.strftime('%Y%m%d')}",
                             query_for_run.get("parameters"), **kwargs)
                         if i == (len(dates_array) - 1):
                             wait = query_for_run.get("wait")

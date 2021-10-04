@@ -121,7 +121,8 @@ class Config:
                         "batch_mode":
                         setups.get("execution_mode") == "batch",
                         "replacements":
-                        setups.get("replace")
+                        setups.get("replace"),
+                        "output_table_suffix": setups.get("output_table_suffix")
                     }
             except KeyError:
                 raise KeyError("No queries specified in query block!")
