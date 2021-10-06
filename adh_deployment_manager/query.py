@@ -142,6 +142,7 @@ class AnalysisQuery(AdhQuery):
     def __init__(self,
                  adh_service,
                  customer_id,
+                 ads_data_from=None,
                  query=None,
                  title=None,
                  text='',
@@ -160,6 +161,7 @@ class AnalysisQuery(AdhQuery):
         self.mergeSpec = mergeSpec
         self.queryState = None
         self.customer_id = f"customers/{customer_id:>09}"
+        self.ads_data_from = f"{ads_data_from:>09}" if ads_data_from else f"{customer_id:>09}"
         self.name = None
         self.adh_service = adh_service
         self.query_body_create = None
@@ -244,6 +246,7 @@ class AnalysisQuery(AdhQuery):
             )
         queryExecuteBody: Dict[str, Any] = {
             "spec": {
+                "adsDataCustomerId": self.ads_data_from,
                 "startDate": utils.get_date(start_date),
                 "endDate": utils.get_date(end_date)
             },

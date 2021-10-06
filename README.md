@@ -137,6 +137,7 @@ queries_setup:
 
 `config.yml` may contain optional elements that can be associated with all queries in  `queries_setup` block:
 
+* `ads_data_from` - list of customer_ids to get ads data from. If the field is not included in config it will be automatically converted to a list of regular customer_ids.
 * `bq_project` & `bq_dataset` - BQ project and dataset used storing output data (specified during ADH setup)
 * `date_range_setup` - date range for running queries in ADH which consists of two elements: `start_date` and `end_date` in YYYY-MM-DD format (i.e., 1970-01-01). Supports template values, i.e. YYYYMMDD-10 transforms into *10 days ago from execution day*.
 

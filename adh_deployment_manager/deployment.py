@@ -192,11 +192,13 @@ List of queries:
             adh_query = AdhQuery(query)
             # iterate over customer_ids in config
             # TODO: parallelize deployment on different threads
-            for customer_id in self.config.customer_id:
+            for customer_id, ads_data_from in zip(self.config.customer_id,
+                                                  self.config.ads_data_from):
                 # create AnalysisQuery object for deployment and / or run
                 analysis_query = AnalysisQuery(
                     adh_service=self.adh_service.adh_service,
                     customer_id=customer_id,
+                    ads_data_from=ads_data_from,
                     query=adh_query)
                 # check if deployment already contains name of the query
                 if query not in self.queries.keys():
@@ -217,7 +219,8 @@ List of queries:
                         query_for_run.get("end_date"),
                         f"{self.config.bq_project}.{self.config.bq_dataset}.{table_name}",
                         query_for_run.get("parameters"), **kwargs)
-                    launched_job =  launch_job(job, wait = query_for_run.get("wait"))
+                    launched_job = launch_job(job,
+                                              wait=query_for_run.get("wait"))
                     job_queue.append({
                         "job_obj": job,
                         "wait_status": query_for_run.get("wait"),
@@ -237,7 +240,7 @@ List of queries:
                             wait = query_for_run.get("wait")
                         else:
                             wait = False
-                        launched_job = launch_job(job, wait = wait)
+                        launched_job = launch_job(job, wait=wait)
                         job_queue.append({
                             "job_obj":
                             job,

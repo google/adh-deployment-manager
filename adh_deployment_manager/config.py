@@ -30,6 +30,9 @@ class Config:
         self.config = self.get_config()
         self.developer_key = self.config.get("developer_key")
         self.customer_id = self._atomic_to_list(self.config.get("customer_id"))
+        self.ads_data_from = self._atomic_to_list(
+            self.config.get("ads_data_from")) or self._atomic_to_list(
+                self.config.get("customer_id"))
         self.bq_project = self.config.get("bq_project")
         self.bq_dataset = self.config.get("bq_dataset")
         self.queries = self.extract_queries_setup()
@@ -122,7 +125,8 @@ class Config:
                         setups.get("execution_mode") == "batch",
                         "replacements":
                         setups.get("replace"),
-                        "output_table_suffix": setups.get("output_table_suffix")
+                        "output_table_suffix":
+                        setups.get("output_table_suffix")
                     }
             except KeyError:
                 raise KeyError("No queries specified in query block!")
