@@ -251,3 +251,16 @@ List of queries:
                         })
                 launched_job_queue.append(launched_job)
         return {"jobs": job_queue, "launched_jobs": launched_job_queue}
+
+    def fetch(self, location, file_name=None, extension=".sql"):
+        for query in self.config.queries:
+            print(query)
+            adh_query = AdhQuery(query)
+            for customer_id, ads_data_from in zip(self.config.customer_id,
+                                                  self.config.ads_data_from):
+                analysis_query = AnalysisQuery(
+                    adh_service=self.adh_service.adh_service,
+                    customer_id=customer_id,
+                    ads_data_from=ads_data_from,
+                    query=adh_query)
+                analysis_query.dump(location, file_name, extension)

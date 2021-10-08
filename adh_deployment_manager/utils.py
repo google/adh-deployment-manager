@@ -72,5 +72,6 @@ def get_file_content(relative_path: str, working_directory: str = None) -> str:
     with open(os.path.join(working_directory, relative_path),
               "r") as sql_query:
         query_lines = sql_query.readlines()
-        query_txt = "".join(line for line in query_lines if not line.startswith("#"))
+        query_txt = "".join(line for line in query_lines
+                            if not line.startswith("#"))
         return query_txt.strip()

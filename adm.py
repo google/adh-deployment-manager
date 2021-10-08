@@ -24,6 +24,7 @@ logging.getLogger().setLevel(logging.INFO)
 parser = argparse.ArgumentParser()
 parser.add_argument("-c|--config", dest="config_path", default="config.yml")
 parser.add_argument("-q|--queries-path", dest="queries_path", default="sql")
+parser.add_argument("-l|--location", dest="queries_download_location", default="sql")
 parser.add_argument("command")
 parser.add_argument("subcommand", nargs="?")
 args = parser.parse_args()
@@ -49,3 +50,5 @@ elif args.command == "deploy":
     deployment.deploy(update=update_command)
 elif args.command == "update":
     deployment.update_only()
+elif args.command == "fetch":
+    deployment.fetch(args.queries_download_location)
