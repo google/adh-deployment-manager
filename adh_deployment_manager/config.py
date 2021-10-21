@@ -28,7 +28,6 @@ class Config:
         self.working_directory = working_directory
         # TODO: duplicate fields for config
         self.config = self.get_config()
-        self.developer_key = self.config.get("developer_key")
         self.customer_id = self._atomic_to_list(self.config.get("customer_id"))
         self.ads_data_from = self._atomic_to_list(
             self.config.get("ads_data_from")) or self._atomic_to_list(

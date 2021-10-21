@@ -30,9 +30,10 @@ parser.add_argument("subcommand", nargs="?")
 args = parser.parse_args()
 
 credentials, _ = google.auth.default()
-
+DEVELOPER_KEY = os.environ['ADH_DEVELOPER_KEY']
 config = os.path.join(os.getcwd(), args.config_path)
 deployment = Deployment(config=config,
+                        developer_key=DEVELOPER_KEY,
                         credentials=credentials,
                         queries_folder=os.path.join(os.getcwd(),
                                                     args.queries_path))

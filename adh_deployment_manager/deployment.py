@@ -27,11 +27,12 @@ import datetime
 class Deployment:
     def __init__(self,
                  config,
+                 developer_key,
                  credentials,
                  queries_folder="sql",
                  query_file_extention=".sql"):
         self.config = Config(config)
-        self.adh_service = AdhService(credentials, self.config.developer_key)
+        self.adh_service = AdhService(credentials, developer_key)
         self.queries_folder = queries_folder
         self.query_file_extention = query_file_extention
         self.queries = {}

@@ -261,10 +261,17 @@ my_deployment = Deployment(
 ADH Deployment Manager contains helper `adm.py` that allows you to simplify interaction with the library.
 `adm.py` accept several arguments:
 
-*  `command` - one of `run`, `deploy`, `update`
+*  `command` - one of `run`, `deploy`, `update`, `fetch`
 *  `subcommand` - one of `deploy` or `update`
 *  `-c path/to/config.yml` - specifies where config is located
 *  `-q path/to/queries_folder` - specifies where folder with queries is located
+*   `-l path/to/output_folder` - specified where queries fetched from ADH should be stored
+
+In order to run this commands you'll need to export developer_key as environmental variable:
+
+```
+export ADH_DEVELOPER_KEY=<developer_key>
+```
 
 #### Usage
 ```
@@ -272,6 +279,7 @@ python adm.py [OPTIONS] command subcommand
     options:
     -c path/to/config.yml
     -q path/to/queries_folder
+    -l path/to/output_folder
 ```
 
 #### Examples
@@ -292,4 +300,10 @@ python adm.py -c path/to/config.yml run
 
 ```
 python adm.py -c path/to/config.yml -q path/to/queries run update
+```
+
+*Fetch queries from config and store in specified location*
+
+```
+python adm.py -c path/to/config.yml -l path/to/output_folder fetch
 ```
