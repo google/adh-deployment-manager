@@ -18,16 +18,23 @@ import argparse
 import os
 import google.auth
 from adh_deployment_manager.deployment import Deployment
+from adh_deployment_manager.commands_factory import CommandsFactory
 
 logging.getLogger().setLevel(logging.INFO)
+
+def execute_command(factory, command, deployment, parameters):
+    logging.info(f"Executing `{command}` command...")
+    executable_command = factory.create_command(command, deployment)
+    executable_command.execute(**parameters)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c|--config", dest="config_path", default="config.yml")
 parser.add_argument("-q|--queries-path", dest="queries_path", default="sql")
-parser.add_argument("-l|--location", dest="queries_download_location", default="sql")
+parser.add_argument("-l|--location", dest="location", default="sql")
 parser.add_argument("command")
 parser.add_argument("subcommand", nargs="?")
 args = parser.parse_args()
+
 
 credentials, _ = google.auth.default()
 DEVELOPER_KEY = os.environ['ADH_DEVELOPER_KEY']
@@ -37,19 +44,9 @@ deployment = Deployment(config=config,
                         credentials=credentials,
                         queries_folder=os.path.join(os.getcwd(),
                                                     args.queries_path))
-
-if args.command == "run":
-    if args.subcommand == "update":
-        deployment.deploy(update=True)
-    elif args.subcommand == "deploy":
-        deployment.deploy()
-    deployment.run()
-elif args.command == "deploy":
-    update_command = False
-    if args.subcommand == "update":
-        update_command = True
-    deployment.deploy(update=update_command)
-elif args.command == "update":
-    deployment.update_only()
-elif args.command == "fetch":
-    deployment.fetch(args.queries_download_location)
+extra_parameters = vars(args)
+command = extra_parameters["command"]
+factory = CommandsFactory()
+for command in [args.subcommand, command]:
+    if command:
+        execute_command(factory, command, deployment, extra_parameters)
