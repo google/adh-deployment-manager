@@ -15,6 +15,7 @@
 
 # TODO: implement overwrites (adh_project, bq_project & dataset)
 import logging
+from typing import NamedTuple
 from adh_deployment_manager.adh_service import AdhService
 from adh_deployment_manager.job import Job, wait_for_query_success
 from adh_deployment_manager.config import Config
@@ -23,6 +24,9 @@ from adh_deployment_manager.utils import format_date, get_file_content, execute_
 from pandas import date_range  # type: ignore
 import datetime
 
+class AdhAnalysisQuery(NamedTuple):
+    adh_query: AdhQuery
+    analysis_query: AnalysisQuery
 
 class Deployment:
     def __init__(self,
@@ -56,109 +60,99 @@ List of queries:
         """
         return deployment_message
 
-    #TODO: generate config based on template (we have a minimal template with query names, method goes to adh project, fetches parameters and updates config for each query)
-    def populate(self, location):
+
+    def _get_queries(self, is_buildable=False):
         for query in self.config.queries:
             query_for_run = self.config.queries[query]
-            # create query out of text files provided
-            adh_query = AdhQuery(query)
-            for customer_id in self.config.customer_id:
-                # initialize adh project
+            if is_buildable:
+                adh_query = AdhQuery(
+                    query,
+                    get_file_content(
+                        f"{self.queries_folder}/{query}{self.query_file_extention}"
+                    ),
+                    query_for_run.get("parameters"),
+                    query_for_run.get("filtered_row_summary"))
+            else:
+                adh_query = AdhQuery(query)
+            for customer_id, ads_data_from in zip(self.config.customer_id,
+                                                  self.config.ads_data_from):
+                # create AnalysisQuery object for deployment and / or run
                 analysis_query = AnalysisQuery(
                     adh_service=self.adh_service.adh_service,
                     customer_id=customer_id,
+                    ads_data_from=ads_data_from,
                     query=adh_query)
-                query_output = analysis_query.get()
-                logging.debug(query_output)
-                if query_output:
-                    analysis_query.dump(location)
-                    query_result = query_output.get("queries")[0]
-                    if query_result.get("parameterTypes"):
-                        for param, types in query_result.get(
-                                "parameterTypes").items():
-                            print(f'{param}: {types.get("type").get("type")}')
-                    if query_result.get("mergeSpec"):
-                        for field, values in query_result.get("mergeSpec").get(
-                                "columns").items():
-                            print(
-                                f'{field}: {values.get("type")}: {values.get("value").get("value")}'
-                            )
-                break
+                yield AdhAnalysisQuery(
+                    adh_query=adh_query,
+                    analysis_query=analysis_query)
+
+    #TODO: generate config based on template (we have a minimal template with query names, method goes to adh project, fetches parameters and updates config for each query)
+    def populate(self, location):
+        queries = self._get_queries()
+        for adh_query, analysis_query in queries:
+            query_output = analysis_query.get()
+            logging.debug(query_output)
+            if query_output:
+                analysis_query.dump(location)
+                query_result = query_output.get("queries")[0]
+                if query_result.get("parameterTypes"):
+                    for param, types in query_result.get(
+                            "parameterTypes").items():
+                        print(f'{param}: {types.get("type").get("type")}')
+                if query_result.get("mergeSpec"):
+                    for field, values in query_result.get("mergeSpec").get(
+                            "columns").items():
+                        print(
+                            f'{field}: {values.get("type")}: {values.get("value").get("value")}'
+                        )
+            break
 
     def deploy(self, update=False):
         deployed_queries = []
         # iterate over each query in config
-        for query in self.config.queries:
-            # select query for deployment
-            query_for_run = self.config.queries[query]
-            # create query out of text files provided
-            adh_query = AdhQuery(
-                query,
-                get_file_content(
-                    f"{self.queries_folder}/{query}{self.query_file_extention}"
-                ), query_for_run.get("parameters"),
-                query_for_run.get("filtered_row_summary"))
-            # iterate over each customer_id in the config
-            # TODO: parallelize deployment on different threads
-            for customer_id in self.config.customer_id:
-                # initialize adh project
-                # initialize analysis query
-                analysis_query = AnalysisQuery(
-                    adh_service=self.adh_service.adh_service,
-                    customer_id=customer_id,
-                    query=adh_query)
-                # check if query with provided title is found in the project
-                if not analysis_query.get():
-                    logging.info(f"deploying query: {query}...")
-                    # deploy query
-                    deployed_query = analysis_query.deploy()
-                    # add query to the list of deployed queries
-                    deployed_queries.append(deployed_query)
-                    self.queries[query] = deployed_query.get("name")
-                # if update flag is specified update existing query
-                elif update:
-                    logging.info(f"updating query: {query}...")
-                    deployed_query = analysis_query.update(
-                        title=adh_query.title,
-                        text=adh_query.text,
-                        parameters=adh_query.parameters,
-                        filtered_row_summary=adh_query.filtered_row_summary)
-                    deployed_queries.append(deployed_query)
-                    self.queries[query] = deployed_query.get("name")
-                # if query is in the project already do nothing
-                else:
-                    logging.warning(
-                        f"query {query} cannot be deployed because it exists.")
+        queries = self._get_queries(is_buildable=True)
+        for adh_query, analysis_query in queries:
+            # check if query with provided title is found in the project
+            if not analysis_query.get():
+                logging.info(f"deploying query: {query}...")
+                # deploy query
+                deployed_query = analysis_query.deploy()
+                # add query to the list of deployed queries
+                deployed_queries.append(deployed_query)
+                self.queries[query] = deployed_query.get("name")
+            # if update flag is specified update existing query
+            elif update:
+                logging.info(f"updating query: {query}...")
+                deployed_query = analysis_query.update(
+                    title=adh_query.title,
+                    text=adh_query.text,
+                    parameters=adh_query.parameters,
+                    filtered_row_summary=adh_query.filtered_row_summary)
+                deployed_queries.append(deployed_query)
+                self.queries[query] = deployed_query.get("name")
+            # if query is in the project already do nothing
+            else:
+                logging.warning(
+                    f"query {query} cannot be deployed because it exists.")
         return deployed_queries
 
     def update_only(self):
         updated_queries = []
-        for query in self.config.queries:
-            query_for_run = self.config.queries[query]
-            adh_query = AdhQuery(
-                query,
-                get_file_content(
-                    f"{self.queries_folder}/{query}{self.query_file_extention}"
-                ), query_for_run.get("parameters"),
-                query_for_run.get("filtered_row_summary"))
-            # TODO: parallelize deployment on different threads
-            for customer_id in self.config.customer_id:
-                analysis_query = AnalysisQuery(
-                    adh_service=self.adh_service.adh_service,
-                    customer_id=customer_id,
-                    query=adh_query)
-                if analysis_query.get():
-                    logging.info(f"updating query: {query}...")
-                    updated_query = analysis_query.update(
-                        title=adh_query.title,
-                        text=adh_query.text,
-                        parameters=adh_query.parameters)
-                    updated_queries.append(updated_query)
-                    self.queries[query] = updated_query.get("name")
-                else:
-                    logging.warning(
-                        f"query {query} cannot be found, would you like to deploy?"
-                    )
+        queries = self._get_queries(is_buildable=True)
+        for adh_query, analysis_query in queries:
+            query = adh_query.title
+            if analysis_query.get():
+                logging.info(f"updating query: {query}...")
+                updated_query = analysis_query.update(
+                    title=adh_query.title,
+                    text=adh_query.text,
+                    parameters=adh_query.parameters)
+                updated_queries.append(updated_query)
+                self.queries[query] = updated_query.get("name")
+            else:
+                logging.warning(
+                    f"query {query} cannot be found, would you like to deploy?"
+                )
         return updated_queries
 
     def deploy_and_run(self):
@@ -188,80 +182,62 @@ List of queries:
         if deploy:
             self.deploy(update=update)
         # iterate over queries in config
-        for query in self.config.queries:
-            # construct AdhQuery object with query title
-            adh_query = AdhQuery(query)
-            # iterate over customer_ids in config
-            # TODO: parallelize deployment on different threads
-            for customer_id, ads_data_from in zip(self.config.customer_id,
-                                                  self.config.ads_data_from):
-                # create AnalysisQuery object for deployment and / or run
-                analysis_query = AnalysisQuery(
-                    adh_service=self.adh_service.adh_service,
-                    customer_id=customer_id,
-                    ads_data_from=ads_data_from,
-                    query=adh_query)
-                # check if deployment already contains name of the query
-                if query not in self.queries.keys():
-                    # deploy query if not if it's not in the project
-                    if not analysis_query.get():
-                        # check if `deploy` option is specified
-                        logging.error(
-                            f"{query} is not found for customer {customer_id}")
-                        continue
-                query_for_run = self.config.queries[query]
-                logging.info(f"setting up query for run: {query}...")
-                output_table_suffix = query_for_run.get("output_table_suffix")
-                table_name = f"{query}{output_table_suffix}" if output_table_suffix else query
-                if not query_for_run.get("batch_mode"):
-                    #TODO: if query failed due to 100,000 user sets error, switch to batch mode
+        queries = self._get_queries()
+        for adh_query, analysis_query in queries:
+            query = adh_query.title
+            # check if deployment already contains name of the query
+            if query not in self.queries.keys():
+                # deploy query if it's not in the project
+                if not analysis_query.get():
+                    # check if `deploy` option is specified
+                    logging.error(
+                        f"{query} is not found for customer {customer_id}")
+                    continue
+            query_for_run = self.config.queries[query]
+            logging.info(f"setting up query for run: {query}...")
+            output_table_suffix = query_for_run.get("output_table_suffix")
+            table_name = f"{query}{output_table_suffix}" if output_table_suffix else query
+            if not query_for_run.get("batch_mode"):
+                #TODO: if query failed due to 100,000 user sets error, switch to batch mode
+                job = analysis_query._run(
+                    query_for_run.get("start_date"),
+                    query_for_run.get("end_date"),
+                    f"{self.config.bq_project}.{self.config.bq_dataset}.{table_name}",
+                    query_for_run.get("parameters"), **kwargs)
+                launched_job = launch_job(job,
+                                          wait=query_for_run.get("wait"))
+                job_queue.append({
+                    "job_obj": job,
+                    "wait_status": query_for_run.get("wait"),
+                    "query_identifier": f"{query}"
+                })
+            else:
+                min_date = format_date(query_for_run, "start_date")
+                max_date = format_date(query_for_run, "end_date")
+                dates_array = date_range(min_date, max_date, freq='d')
+                for i, date in enumerate(dates_array):
+                    fetching_date = date.strftime("%Y-%m-%d")
                     job = analysis_query._run(
-                        query_for_run.get("start_date"),
-                        query_for_run.get("end_date"),
-                        f"{self.config.bq_project}.{self.config.bq_dataset}.{table_name}",
+                        fetching_date, fetching_date,
+                        f"{self.config.bq_project}.{self.config.bq_dataset}.{output_table_suffix}_{date.strftime('%Y%m%d')}",
                         query_for_run.get("parameters"), **kwargs)
-                    launched_job = launch_job(job,
-                                              wait=query_for_run.get("wait"))
+                    if i == (len(dates_array) - 1):
+                        wait = query_for_run.get("wait")
+                    else:
+                        wait = False
+                    launched_job = launch_job(job, wait=wait)
                     job_queue.append({
-                        "job_obj": job,
-                        "wait_status": query_for_run.get("wait"),
-                        "query_identifier": f"{query}"
+                        "job_obj":
+                        job,
+                        "wait_status":
+                        wait,
+                        "query_identifier":
+                        f"{query}_{date.strftime('%Y%m%d')}"
                     })
-                else:
-                    min_date = format_date(query_for_run, "start_date")
-                    max_date = format_date(query_for_run, "end_date")
-                    dates_array = date_range(min_date, max_date, freq='d')
-                    for i, date in enumerate(dates_array):
-                        fetching_date = date.strftime("%Y-%m-%d")
-                        job = analysis_query._run(
-                            fetching_date, fetching_date,
-                            f"{self.config.bq_project}.{self.config.bq_dataset}.{output_table_suffix}_{date.strftime('%Y%m%d')}",
-                            query_for_run.get("parameters"), **kwargs)
-                        if i == (len(dates_array) - 1):
-                            wait = query_for_run.get("wait")
-                        else:
-                            wait = False
-                        launched_job = launch_job(job, wait=wait)
-                        job_queue.append({
-                            "job_obj":
-                            job,
-                            "wait_status":
-                            wait,
-                            "query_identifier":
-                            f"{query}_{date.strftime('%Y%m%d')}"
-                        })
-                launched_job_queue.append(launched_job)
+            launched_job_queue.append(launched_job)
         return {"jobs": job_queue, "launched_jobs": launched_job_queue}
 
     def fetch(self, location, file_name=None, extension=".sql"):
-        for query in self.config.queries:
-            print(query)
-            adh_query = AdhQuery(query)
-            for customer_id, ads_data_from in zip(self.config.customer_id,
-                                                  self.config.ads_data_from):
-                analysis_query = AnalysisQuery(
-                    adh_service=self.adh_service.adh_service,
-                    customer_id=customer_id,
-                    ads_data_from=ads_data_from,
-                    query=adh_query)
+        queries = self._get_queries()
+        for _, analysis_query in queries:
                 analysis_query.dump(location, file_name, extension)
