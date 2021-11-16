@@ -17,23 +17,28 @@ ADH Deployment Manager provides both high level interface for interacting with A
 # load necessary modules
 from adh_deployment_manager.authenticator import InstalledAppFlow
 from adh_deployment_manager.deployment import Deployment
+import adh_deployment_manager.commands as commands
 
 # provide authentication mechanism
 auth = InstalledAppFlow("/path/to/client_secrets.json")
+developer_key =  "INSERT_YOUR_DEVELOPER_KEY"
 
 # instantiate deployment with config and credentials
 # (and optionally path to folder where source queries are located)
 deployment = Deployment(
     config = "/path/to/config.yml",
     credentials = auth.credentials,
+    developer_key = developer_key,
     queries_folder="/path/to/adh-queries/",
     query_file_extention=".sql")
 
 # deploy queries to ADH project(s)
-deployment.deploy()
+deployer = commands.Deployer(deployment)
+deployer.execute()
 
 # run queries in ADH projects(s)
-deployment.run()
+runner = commands.Runner(deployment)
+runner.execute()
 ```
 
 # Table of contents<a name="table-of-contents"></a>
