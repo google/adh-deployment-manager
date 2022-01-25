@@ -16,16 +16,18 @@
 import logging
 import argparse
 import os
-import google.auth
+from adh_deployment_manager.authenticator import AdhAutheticator
 from adh_deployment_manager.deployment import Deployment
 from adh_deployment_manager.commands_factory import CommandsFactory
 
 logging.getLogger().setLevel(logging.INFO)
 
+
 def execute_command(factory, command, deployment, parameters):
     logging.info(f"Executing `{command}` command...")
     executable_command = factory.create_command(command, deployment)
     executable_command.execute(**parameters)
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c|--config", dest="config_path", default="config.yml")
@@ -35,8 +37,7 @@ parser.add_argument("command")
 parser.add_argument("subcommand", nargs="?")
 args = parser.parse_args()
 
-
-credentials, _ = google.auth.default()
+credentials = AdhAutheticator().get_credentials(os.environ['ADH_SECRET_FILE'])
 DEVELOPER_KEY = os.environ['ADH_DEVELOPER_KEY']
 config = os.path.join(os.getcwd(), args.config_path)
 deployment = Deployment(config=config,

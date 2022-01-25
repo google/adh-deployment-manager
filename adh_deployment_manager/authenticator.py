@@ -13,68 +13,82 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import logging
 import pickle
+from oauth2client.service_account import ServiceAccountCredentials  # type: ignore
+from google_auth_oauthlib import flow  # type: ignore
+import google.auth  # type: ignore
 
 _SCOPE = "https://www.googleapis.com/auth/adsdatahub"
 
 
-class authenticator:
-    def __init__(self, file, scope=_SCOPE):
-        self.secrets_file = file
-        self.scope = scope
-        self.credentials = self._get_credentials(
-        ) if force_refresh else self.read_credentials(
-        ) or self._get_credentials()
+class BaseAuthenticator:
+    def __init__(self, successor):
+        self.successor = successor
 
-    def _get_credentials(self):
-        pass
+    def handle(self, file):
+        if self.successor:
+            return self.successor.handle(file)
 
-    def dump(self, credentials):
+
+class ServiceAccount(BaseAuthenticator):
+    def handle(self, file):
+        try:
+            credentials = ServiceAccountCredentials.from_json_keyfile_name(
+                file, _SCOPE)
+            return credentials
+        except:
+            return super().handle(file)
+
+
+class InstalledAppFlow(BaseAuthenticator):
+    def handle(self, file):
+        try:
+            appflow = flow.InstalledAppFlow.from_client_secrets_file(
+                file, _SCOPE)
+            appflow.run_console()
+            credentials = appflow.credentials
+            return credentials
+        except:
+            return super().handle(file)
+
+
+class DefaultCredentials(BaseAuthenticator):
+    def handle(self, file):
+        try:
+            credentials, _ = google.auth.default()
+            return credentials
+        except:
+            return super().handle(file)
+
+
+class AdhAutheticator:
+    def __init__(self):
+        self.authenticator = self._init_authenticators()
+
+    def _init_authenticators(self):
+        authenticator_chain = BaseAuthenticator(None)
+        for auth in DefaultCredentials, ServiceAccount, InstalledAppFlow:
+            new_authenticator = auth(authenticator_chain)
+            authenticator_chain = new_authenticator
+        return authenticator_chain
+
+    def get_credentials(self, file, dump_to_file=True):
+        credentials = self.check_local_credentials(
+        ) or self.authenticator.handle(file)
+        if dump_to_file:
+            self.dump_credentials_to_file(credentials)
+        return credentials
+
+    def check_local_credentials(self):
+        if os.path.exists("token.pickle"):
+            logging.debug("reading credentials")
+            with open("token.pickle", "rb") as token:
+                local_credentials = pickle.load(token)
+            return local_credentials
+
+    def dump_credentials_to_file(self, credentials):
         with open("token.pickle", "wb") as token:
             logging.debug("saving credentials")
             pickle.dump(credentials, token)
-
-    def read_credentials(self):
-        import os
-        if not os.path.exists("token.pickle"):
-            return None
-        logging.debug("reading credentials")
-        with open("token.pickle", "rb") as token:
-            credentials = pickle.load(token)
-            if credentials.expired:
-                self._get_credentials()
-        return credentials
-
-
-class ServiceAccount(authenticator):
-    def __init__(self, service_account_file, scope=_SCOPE):
-        self.secrets_file = service_account_file
-        self.scope = scope
-        self.credentials = self._get_credentials(
-        ) if force_refresh else self.read_credentials(
-        ) or self._get_credentials()
-
-    def _get_credentials(self):
-        from oauth2client.service_account import ServiceAccountCredentials  # type: ignore
-        credentials = ServiceAccountCredentials.from_json_keyfile_name(
-            self.service_account_file, _SCOPE)
-        return credentials
-
-
-class InstalledAppFlow(authenticator):
-    def __init__(self, client_secrets_file, scope=_SCOPE, force_refresh=False):
-        self.secrets_file = client_secrets_file
-        self.scope = scope
-        self.credentials = self._get_credentials() if force_refresh else super(
-        ).read_credentials() or self._get_credentials()
-
-    def _get_credentials(self):
-        logging.debug("getting credentials")
-        from google_auth_oauthlib import flow
-        appflow = flow.InstalledAppFlow.from_client_secrets_file(
-            self.secrets_file, self.scope)
-        appflow.run_local_server()
-        credentials = appflow.credentials
-        super().dump(credentials)
-        return credentials
