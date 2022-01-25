@@ -86,7 +86,7 @@ class AdhAutheticator:
             logging.debug("reading credentials")
             with open("token.pickle", "rb") as token:
                 local_credentials = pickle.load(token)
-            return local_credentials
+            return None if local_credentials.expired else local_credentials
 
     def dump_credentials_to_file(self, credentials):
         with open("token.pickle", "wb") as token:
