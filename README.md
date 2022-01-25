@@ -15,19 +15,19 @@ ADH Deployment Manager provides both high level interface for interacting with A
 
 ```
 # load necessary modules
-from adh_deployment_manager.authenticator import InstalledAppFlow
+from adh_deployment_manager.authenticator import AdhAutheticator
 from adh_deployment_manager.deployment import Deployment
 import adh_deployment_manager.commands as commands
 
 # provide authentication mechanism
-auth = InstalledAppFlow("/path/to/client_secrets.json")
+credentials = AdhAutheticator().get_credentials("/path/to/credentials.json")
 developer_key =  "INSERT_YOUR_DEVELOPER_KEY"
 
 # instantiate deployment with config and credentials
 # (and optionally path to folder where source queries are located)
 deployment = Deployment(
     config = "/path/to/config.yml",
-    credentials = auth.credentials,
+    credentials = credentials,
     developer_key = developer_key,
     queries_folder="/path/to/adh-queries/",
     query_file_extention=".sql")
@@ -113,7 +113,7 @@ If authenticating via service account is not possible please follow the steps ou
 2. Generate OAuth 2.0 Client ID and download credentials:
     * go to *API & Services - Credentials*, click *+ CREATE CREDENTIALS*
     and select *OAuth client ID*
-    * Select *Web application* as application type, specify any application name
+    * Select *Desktop App* as application type, specify any application name
     and click *CREATE* button.
     * Click the download icon next to the credentials that you just created.
 3. Generate API Key (Developer Key for ADH)
