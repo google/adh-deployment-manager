@@ -44,6 +44,7 @@ runner.execute()
 # Table of contents<a name="table-of-contents"></a>
 1. [Project overview](#project-overview)
 2. [Requirements](#requirements)
+2. [Installation](#installation)
 3. [Getting started](#getting-started)
     1. [Access setup](#access-setup)
 	    1. [*(Recommended)* - Authenticating as a service account](#recommended-authenticating-as-a-service-account)
@@ -78,6 +79,14 @@ my_adh_project
 * [Python3](https://www.python.org/downloads/)
 * [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
+## Installation<a name="installation"></a>
+*Back to [table of contents](#table-of-contents)*
+
+The CLI tool called `adm` can be installed from pip:
+
+```
+pip install adh-deployment-manager
+```
 
 ## Getting started<a name="getting-started"></a>
 *Back to [table of contents](#table-of-contents)*
@@ -263,8 +272,8 @@ my_deployment = Deployment(
 ### Deploying and running queires<a name="running-queries"></a>
 *Back to [table of contents](#table-of-contents)*
 
-ADH Deployment Manager contains helper `adm.py` that allows you to simplify interaction with the library.
-`adm.py` accept several arguments:
+ADH Deployment Manager installs `adm` CLI tool that allows you to simplify interaction with the library.
+`adm` accept several arguments:
 
 *  `command` - one of `run`, `deploy`, `update`, `fetch`
 *  `subcommand` - one of `deploy` or `update`
@@ -280,7 +289,7 @@ export ADH_DEVELOPER_KEY=<developer_key>
 
 #### Usage
 ```
-python adm.py [OPTIONS] command subcommand
+adm [OPTIONS] command subcommand
     options:
     -c path/to/config.yml
     -q path/to/queries_folder
@@ -292,23 +301,23 @@ python adm.py [OPTIONS] command subcommand
 *Deploy queries based on config*
 
 ```
-python adm.py -c path/to/config.yml -q path/to/queries deploy
+adm -c path/to/config.yml -q path/to/queries deploy
 ```
 
 *Run queries without deployment*
 
 ```
-python adm.py -c path/to/config.yml run
+adm -c path/to/config.yml run
 ```
 
 *Run and update queries*
 
 ```
-python adm.py -c path/to/config.yml -q path/to/queries run update
+adm -c path/to/config.yml -q path/to/queries run update
 ```
 
 *Fetch queries from config and store in specified location*
 
 ```
-python adm.py -c path/to/config.yml -l path/to/output_folder fetch
+adm -c path/to/config.yml -l path/to/output_folder fetch
 ```
